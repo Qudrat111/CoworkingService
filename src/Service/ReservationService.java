@@ -1,39 +1,36 @@
 package Service;
 
 import Model.Reservation;
+import repository.ReservationRepository;
 
+import java.sql.SQLException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class ReservationService {
-    private List<Reservation> reservations = new ArrayList<>();
+    ReservationRepository reservationRepository = new ReservationRepository();
+
     static int id = 0;
 
-    public boolean bookResource(String userId, String resourceId, LocalDateTime startTime, LocalDateTime endTime) {
-        for(Reservation res : reservations) {
-            if(res.getResourceId().equals(resourceId) &&
-                    (res.getStartTime().isBefore(endTime) && res.getEndTime().isAfter(startTime))) {
-                return false; // Conflict
-            }
-        }
-        reservations.add(new Reservation(String.valueOf(id++), userId, resourceId, startTime, endTime));
-        return true;
+    public ReservationService() throws SQLException {
     }
 
-    public boolean cancelReservation(String reservationId) {
-        return reservations.removeIf(res -> res.getId().equals(reservationId));
+    public boolean bookResource(String userId, String resourceId, LocalDateTime startTime, LocalDateTime endTime) throws SQLException {
+        boolean b = reservationRepository.bookResource(userId, resourceId, startTime, endTime);
+        return b;
     }
 
-
-
-    public List<Reservation> getReservations() {
-        return reservations;
+    public boolean cancelReservation(String reservationId) throws SQLException {
+        boolean b = reservationRepository.cancelReservation(reservationId);
+        return b;
     }
 
-    public List<Reservation> getReservationsByUser(String userId) {
-        return reservations.stream().filter(res -> res.getUserId().equals(userId)).collect(Collectors.toList());
+    public List<Reservation> getReservations() throws SQLException {
+       return reservationRepository.getReservations();
+    }
+
+    public List<Reservation> getReservationsByUser(String userId) throws SQLException {
+        return reservationRepository.getReservationsByUser(userId);
     }
 
 }

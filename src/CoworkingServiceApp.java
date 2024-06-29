@@ -1,17 +1,40 @@
-import Model.User;
+import Model.*;
 import Service.ReservationService;
 import Service.ResourceService;
 import Service.UserService;
 import Utility.Authenticator;
+import resources.ReservationResource;
+import resources.ResourcesResource;
+import resources.UserResource;
 
+import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 public class CoworkingServiceApp {
-    private static UserService userService = new UserService();
-    private static ResourceService resourceService = new ResourceService();
-    private static ReservationService reservationService = new ReservationService();
-    private static Authenticator authenticator = new Authenticator(userService);
+    private static UserResource userResource = new UserResource();
+    private static ResourcesResource resourcesResource;
+
+    static {
+        try {
+            resourcesResource = new ResourcesResource();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static ReservationResource reservationResource;
+
+    static {
+        try {
+            reservationResource = new ReservationResource();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private static User loggedInUser;
 
     public static void main(String[] args) {
@@ -33,22 +56,19 @@ public class CoworkingServiceApp {
                         String password = scanner2.nextLine();
                         System.out.println("Are you an admin? (true/false):");
                         boolean isAdmin = scanner1.nextBoolean();
-                        if (userService.registerUser(username, password, isAdmin)) {
-                            System.out.println("User registered successfully!");
-                        } else {
-                            System.out.println("User registration failed. Username might already be taken.");
-                        }
+                        ApiResponse register = userResource.register(new User(username, password, isAdmin));
+                        System.out.println(register.getMessage());
+                        System.out.println(register.getCode());
                     } else if (choice == 2) {
                         System.out.println("Enter username:");
                         String username = scanner2.nextLine();
                         System.out.println("Enter password:");
                         String password = scanner2.nextLine();
-                        User user = authenticator.login(username, password);
-                        if (user != null) {
-                            loggedInUser = user;
-                            System.out.println("Login successful!");
-                        } else {
-                            System.out.println("Invalid credentials.");
+                        ApiResponse login = userResource.login(username, password);
+                        System.out.println(login.getMessage());
+                        System.out.println(login.getCode());
+                        if (login.getCode() == 200) {
+                            loggedInUser = (User) login.getData();
                         }
                     }
                 } else {
@@ -67,10 +87,22 @@ public class CoworkingServiceApp {
                     int choice = scanner1.nextInt();
                     switch (choice) {
                         case 1:
-                            resourceService.getAllWorkplaces().values().forEach(System.out::println);
+                            ApiResponse allWorkplaces = resourcesResource.getAllWorkplaces();
+                            System.out.println(allWorkplaces.getMessage());
+                            System.out.println(allWorkplaces.getCode());
+                            if (allWorkplaces.getCode() == 200) {
+                                Map<String, WorkPlace> data = (Map)allWorkplaces.getData();
+                                data.values().forEach(System.out::println);
+                            }
                             break;
                         case 2:
-                            resourceService.getAllMeetingRooms().values().forEach(System.out::println);
+                            ApiResponse allMeetingRooms = resourcesResource.getAllMeetingRooms();
+                            System.out.println(allMeetingRooms.getMessage());
+                            System.out.println(allMeetingRooms.getCode());
+                            if (allMeetingRooms.getCode() == 200) {
+                                Map<String, MeetingRoom> data = (Map)allMeetingRooms.getData();
+                                data.values().forEach(System.out::println);
+                            }
                             break;
                         case 3:
                             System.out.println("Enter workplace ID:");
@@ -79,11 +111,9 @@ public class CoworkingServiceApp {
                             LocalDateTime wpStart = LocalDateTime.parse(scanner2.nextLine());
                             System.out.println("Enter end time (yyyy-MM-ddTHH:mm):");
                             LocalDateTime wpEnd = LocalDateTime.parse(scanner2.nextLine());
-                            if (reservationService.bookResource(loggedInUser.getUsername(), wpId, wpStart, wpEnd)) {
-                                System.out.println("Booking successful!");
-                            } else {
-                                System.out.println("Booking failed. Time slot might be unavailable.");
-                            }
+                            ApiResponse apiResponse = reservationResource.bookResource(loggedInUser.getUsername(), wpId, wpStart, wpEnd);
+                            System.out.println(apiResponse.getMessage());
+                            System.out.println(apiResponse.getCode());
                             break;
                         case 4:
                             System.out.println("Enter meeting room ID:");
@@ -92,24 +122,25 @@ public class CoworkingServiceApp {
                             LocalDateTime mrStart = LocalDateTime.parse(scanner2.nextLine());
                             System.out.println("Enter end time (yyyy-MM-ddTHH:mm):");
                             LocalDateTime mrEnd = LocalDateTime.parse(scanner2.nextLine());
-                            if (reservationService.bookResource(loggedInUser.getUsername(), mrId, mrStart, mrEnd)) {
-                                System.out.println("Booking successful!");
-                            } else {
-                                System.out.println("Booking failed. Time slot might be unavailable.");
-                            }
+                            ApiResponse apiResponse1 = reservationResource.bookResource(loggedInUser.getUsername(), mrId, mrStart, mrEnd);
+                            System.out.println(apiResponse1.getMessage());
+                            System.out.println(apiResponse1.getCode());
                             break;
                         case 5:
                             System.out.println("Enter reservation ID to cancel:");
                             String resId = scanner2.nextLine();
-                            if (reservationService.cancelReservation(resId)) {
-                                System.out.println("Cancellation successful!");
-                            } else {
-                                System.out.println("Cancellation failed. Reservation ID might be invalid.");
-                            }
+                            ApiResponse apiResponse2 = reservationResource.cancelReservation(resId);
+                            System.out.println(apiResponse2.getMessage());
+                            System.out.println(apiResponse2.getCode());
                             break;
                         case 6:
-                            reservationService.getReservationsByUser(loggedInUser.getUsername())
-                                    .forEach(System.out::println);
+                            ApiResponse reservationsByUser = reservationResource.getReservationsByUser(loggedInUser.getUsername());
+                            System.out.println(reservationsByUser.getMessage());
+                            System.out.println(reservationsByUser.getCode());
+                            if (reservationsByUser.getCode() == 200) {
+                                List<User> data = (List<User>) reservationsByUser.getData();
+                                data.forEach(System.out::println);
+                            }
                             break;
                         case 7:
                             if (loggedInUser.isAdmin()) {
@@ -117,8 +148,9 @@ public class CoworkingServiceApp {
                                 String newWpId = scanner2.nextLine();
                                 System.out.println("Enter workplace location:");
                                 String location = scanner2.nextLine();
-                                resourceService.addWorkplace(newWpId, location);
-                                System.out.println("Workplace added successfully!");
+                                ApiResponse apiResponse3 = resourcesResource.addWorkplace(newWpId, location);
+                                System.out.println(apiResponse3.getMessage());
+                                System.out.println(apiResponse3.getCode());
                             } else {
                                 System.out.println("Access denied.");
                             }
@@ -129,18 +161,20 @@ public class CoworkingServiceApp {
                                 String newMrId = scanner2.nextLine();
                                 System.out.println("Enter meeting room name:");
                                 String name = scanner2.nextLine();
-                                resourceService.addMeetingRoom(newMrId, name);
-                                System.out.println("Meeting room added successfully!");
+                                ApiResponse apiResponse3 = resourcesResource.addMeetingRoom(newMrId, name);
+                                System.out.println(apiResponse3.getMessage());
+                                System.out.println(apiResponse3.getCode());
                             } else {
                                 System.out.println("Access denied.");
                             }
                             break;
                         case 9:
-                            if (loggedInUser.isAdmin()) {
-                                reservationService.getReservations()
-                                        .forEach(System.out::println);
-                            } else {
-                                System.out.println("Access denied.");
+                            ApiResponse reservations = reservationResource.getReservations();
+                            System.out.println(reservations.getMessage());
+                            System.out.println(reservations.getCode());
+                            if (reservations.getCode() == 200) {
+                                List<Reservation> data = (List<Reservation>) reservations.getData();
+                                data.forEach(System.out::println);
                             }
                             break;
                         case 10:
