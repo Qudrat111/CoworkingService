@@ -7,9 +7,9 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class User {
-    private String username;
-    private String password;
-    private boolean isAdmin;
+public class ApiResponse {
+    String message;
+    Integer code;
+    Object data;
 
 }
