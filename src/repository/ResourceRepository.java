@@ -2,6 +2,7 @@ package repository;
 
 import Model.MeetingRoom;
 import Model.WorkPlace;
+import util.DatabaseUtil;
 
 import java.sql.*;
 import java.util.HashMap;
@@ -9,13 +10,10 @@ import java.util.List;
 import java.util.Map;
 
 public class ResourceRepository {
-    private final String URL = "jdbc:postgresql://localhost:5432/postgres";
-    private final String USER = "postgres";
-    private final String PASSWORD = "1234";
     private Connection connection;
     public ResourceRepository() throws SQLException {
         try {
-            connection = DriverManager.getConnection(URL, USER, PASSWORD);
+            connection = DatabaseUtil.getConnection();
             connection.setAutoCommit(false);
 
         } catch (SQLException e) {

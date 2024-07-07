@@ -1,16 +1,14 @@
 package repository;
 
 import Model.User;
+import util.DatabaseUtil;
 
 import java.sql.*;
 
 public class UserRepository {
-    private final String URL = "jdbc:postgresql://localhost:5432/postgres";
-    private final String USER = "postgres";
-    private final String PASSWORD = "1234";
     Connection connection;
     public UserRepository () throws SQLException {
-        connection = DriverManager.getConnection(URL,USER,PASSWORD);
+        connection = DatabaseUtil.getConnection();
     }
 
     public boolean addUser(String username, String password, boolean isAdmin) {
